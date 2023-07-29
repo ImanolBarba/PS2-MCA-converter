@@ -180,7 +180,7 @@ size_t get_file_size(int fd) {
   return (size_t)file_size;
 }
 
-int convert_memcard(int in_fd, int out_fd, int backup_fd) {
+int convert_memcard(int in_fd, int out_fd) {
   size_t file_size = get_file_size(in_fd);
   if(file_size != EXPECTED_NON_ECC_MEMCARD_SIZE) {
     fprintf(stderr, "Input Memory Card has an unexpected size: %zu\n", file_size);
@@ -199,11 +199,6 @@ int convert_memcard(int in_fd, int out_fd, int backup_fd) {
 
       if(write_file(out_fd, data, BYTES_PER_PAGE)) {
         fprintf(stderr, "Error writing output memcard: %s\n", strerror(errno));
-        return 1;
-      }
-
-      if(write_file(backup_fd, data, BYTES_PER_PAGE)) {
-        fprintf(stderr, "Error writing backup memcard: %s\n", strerror(errno));
         return 1;
       }
 
@@ -266,29 +261,10 @@ int main(int argc, char** argv) {
   }
   fprintf(stderr, "Opened output memcard successfully (%s)\n", argv[2]);
 
-  char* backup_filename = calloc(strlen(argv[1]) + 5, 1);
-  if(snprintf(backup_filename, strlen(argv[1]) + 5, "%s.bak", argv[1]) < 0) {
-    fprintf(stderr, "Unable to generate /proc link filename\n");
-    close_fd(in_fd);
-    close_fd(out_fd);
-    return 1;
-  }
-
-  int backup_fd = open(backup_filename, O_WRONLY | O_CREAT, 0644);
-  if(backup_fd < 0) {
-    fprintf(stderr, "Unable to open backup memory card%s : %s\n", backup_filename, strerror(errno));
-    close_fd(in_fd);
-    close_fd(out_fd);
-    return 1;
-  }
-  fprintf(stderr, "Opened backup memcard successfully (%s)\n", backup_filename);
-  free(backup_filename);
-
   fprintf(stderr, "Begin conversion\n");
-  int ret = convert_memcard(in_fd, out_fd, backup_fd);
+  int ret = convert_memcard(in_fd, out_fd);
   close_fd(in_fd);
   close_fd(out_fd);
-  close_fd(backup_fd);
 
   if(ret) {
     fprintf(stderr, "Unable to convert memcard\n");
